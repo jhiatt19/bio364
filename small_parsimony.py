@@ -1,6 +1,6 @@
 import math
 
-with open("small_parsimony_input.txt", "r") as file:
+with open("small_parsimony_test_input.txt", "r") as file:
     tree = file.read().splitlines()
 
 
@@ -24,10 +24,14 @@ def clean_data(tree):
         node.tag = 1
         nodes_id_list[node.node_id] = []
     for node in tree[1:]:
-        node_num = node.split('->')
-        node_sequence = node_num[1]
+        node_line = node.split('->')
+        if node_line[0].isdigit():
+            node_num = int(node_line[0])
+            node_sequence = node_line[1]
+        else:
+            node_num = int(node_line[1])
+            node_sequence = node_line[0]
         leaf_sequences.append(node_sequence)
-        node_num = int(node_num[0])
         if node_num not in nodes_id_list:
             nodes_id_list[node_num] = []
             nodes_id_list[node_num].append(node_sequence)
@@ -55,7 +59,6 @@ def clean_data(tree):
         if not node.is_leaf:
             for i in range(len_sequence):
                 node.scores.append([0,0,0,0])
-
     return treeNodes
 
 def parsimony(tree: list[TreeNode]):
@@ -66,9 +69,10 @@ def parsimony(tree: list[TreeNode]):
             left_child = tree[node.left_child].sequence
             for i in range(len(right_child)):
                 for j in options:
-                    update_scores(node,i,j,tree[node.right_child].scores[i])
                     update_scores(node,i,j,tree[node.left_child].scores[i])
-                        
+                    update_scores(node,i,j,tree[node.right_child].scores[i])
+            # print(node.node_id, tree[node.left_child].sequence, tree[node.left_child].scores)
+            # print(node.node_id, tree[node.right_child].sequence, tree[node.right_child].scores)            
             node.sequence = ''
             for position in node.scores:
                 pos = position.index(min(position))
@@ -79,7 +83,8 @@ def parsimony(tree: list[TreeNode]):
                 elif pos == 2:
                     node.sequence += 'G'
                 elif pos == 3:
-                    node.sequence += 'T'           
+                    node.sequence += 'T'
+            #print(node.sequence, node.scores)           
     return tree
 
 def update_scores(node: TreeNode, spot: int, value: str, children: list[int]):
@@ -112,6 +117,8 @@ def print_final(node,tree,f):
     print_final(tree[node.left_child],tree,f)
 
 data = clean_data(tree)
+# for line in data:
+#     print(line.node_id, line.is_leaf, line.sequence, line.left_child, line.right_child)
 data = parsimony(data)
 
 parsimony_score = 0
@@ -120,7 +127,7 @@ for pos in data[-1].scores:
 
 with open("small_parsimony_output_test.txt", 'w') as f:
     print(parsimony_score, file=f)
-    print_final(data[-1],data,f)
+    # print_final(data[-1],data,f)
 
 
 
