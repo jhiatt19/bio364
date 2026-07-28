@@ -1,4 +1,4 @@
-inputs = ["TTCCTAACG$A","T$ACG","AAAAAAAAAA$","TGCG$AA"]
+inputs = ['TCCTCTATGAGATCCTATTCTATGAAACCTTCA$GACCAAAATTCTCCGGC']
 
 import sys
 from typing import List, Dict, Iterable, Tuple
