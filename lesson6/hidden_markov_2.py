@@ -1,7 +1,7 @@
 from pathlib import Path
 
-inputs_folder = Path("./01_ProbabilityHMMPath/inputs")
-outputs_folder = Path("./01_ProbabilityHMMPath/outputs")
+inputs_folder = Path("./02_ProbabilityOutcomeGivenHiddenPath/inputs")
+outputs_folder = Path("./02_ProbabilityOutcomeGivenHiddenPath/outputs")
 
 file_contents = {}
 
@@ -30,9 +30,11 @@ for ofile in outputs_folder.iterdir():
 
 def calculate_path_prob(content):
     sections = content.strip().split('--------')
-    path = sections[0].strip()
-    states = sections[1].strip().split()
-    matrix_lines = [line.strip() for line in sections[2].strip().split("\n") if line]
+    string = sections[0].strip()
+    alphabet = sections[1].strip().split()
+    path = sections[2].strip()
+    states = sections[3].strip().split()
+    matrix_lines = [line.strip() for line in sections[4].strip().split("\n") if line]
     col_headers = matrix_lines[0].split()
     matrix_dict = {}
 
@@ -42,12 +44,10 @@ def calculate_path_prob(content):
         probabilities = [float(p) for p in parts[1:]]
 
         matrix_dict[row_label] = dict(zip(col_headers,probabilities))
-
-    start = 1 / len(states)
-    for k in range(len(path)-1):
-        statePos1 = path[k]
-        statePos2 = path[k+1]
-        start = start * matrix_dict[statePos1][statePos2]
+    print(matrix_dict)
+    start = 1
+    for a, p in zip(string,path):
+        start = start * matrix_dict[p][a]
 
     return start
     
@@ -58,3 +58,4 @@ i = 0
 for f in file_contents:
     ans = calculate_path_prob(file_contents[f])
     print(ans)
+    
