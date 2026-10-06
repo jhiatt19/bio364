@@ -45,6 +45,7 @@ def calculate_hidden_path(content):
             if char == "-":
                 gaps[gap_index] += 1
             gap_index += 1
+    header_column_labels.append('E')
     indexes_under_theta = []
     for gap in range(len(gaps)): #changes gaps data to probability of gaps at each index
         gaps[gap] = gaps[gap] / num_alignments
