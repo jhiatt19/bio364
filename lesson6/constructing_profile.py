@@ -47,21 +47,21 @@ def calculate_hidden_path(content):
                 gaps[gap_index] += 1
             gap_index += 1
     
-    match_state = []
-    ignore_state = []
+    match_column = []
+    insert_column = []
     for gap in range(len(gaps)): #changes gaps data to probability of gaps at each index
         gaps[gap] = gaps[gap] / num_alignments
         if gaps[gap] < theta:
-            match_state.append(gap)
+            match_column.append(gap)
         else:
-            ignore_state.append(gap)
-    #print(gaps, match_state, theta)
-    for i in range(1,len(match_state)+1):
+            insert_column.append(gap)
+    for i in range(1,len(match_column)+1):
         for skel in column_skeleton:
             addition = skel + str(i)
             header_column_labels.append(addition)
     header_column_labels.append('E')
     header_column_labels.append('Total')
+    alphabet.append('Total')
     emission_matrix = {}
     transition_matrix = {}
     for header in header_column_labels: 
@@ -73,66 +73,89 @@ def calculate_hidden_path(content):
             transition_matrix[header][head] = 0
     for a in alignments:
         index_counter = 0
-        match_state_counter = 1
+        state_counter = 1
+        prev_states = []
         state = 'S'
+        prev_states.append(state)
         for letter in a:
-            if index_counter in ignore_state and letter != '-':
-                if index_counter == 0:
-                    next_state = 'I' + str(index_counter)
-                if state == 'S' or state == 'I0':
+            if index_counter in insert_column and letter != '-':
+                if state == 'S':
                     next_state = 'I0'
+                elif state[0] == 'I':
+                    next_state = state
                 else:
-                    next_state = 'I' + str(match_state_counter)
-            elif index_counter in ignore_state and letter == '-':
+                    next_state = 'I' + str(state_counter) 
+            elif index_counter in insert_column and letter == '-':
                 if index_counter == len(a)-1:
                     next_state = 'E'
                 else:
-                    match_state_counter += 1
-                    next_state = 'M' + str(match_state_counter)
-            elif index_counter in match_state and letter != '-':
-                if state[0] == 'I':
-                    match_state_counter += 1
-                next_state = 'M' + str(match_state_counter)
-            elif index_counter in match_state and letter == '-':
-                if state[0] == 'D' or state[0] == 'M' and state != 'I0':
-                    match_state_counter += 1
-                next_state = 'D' + str(match_state_counter)
-            print(state,next_state,index_counter)
-            if state != next_state or (state[0] == 'I' and state == next_state):
+                    next_state = 'Ignore'
+            elif index_counter in match_column and letter != '-':
+                if state[0] == 'I' or state[0] == 'M' or state[0] == 'D':
+                    state_counter += 1
+                next_state = 'M' + str(state_counter)
+            elif index_counter in match_column and letter == '-':
+                if state[0] == 'D' or state[0] == 'M' or (state[0] == 'I' and state != 'I0'):
+                    state_counter += 1
+                next_state = 'D' + str(state_counter)
+            if next_state != 'Ignore':
                 transition_matrix[state][next_state] += 1
                 transition_matrix[state]['Total'] += 1
-            state = next_state
+                if letter in alphabet:
+                    emission_matrix[next_state][letter] += 1
+                    emission_matrix[next_state]['Total'] += 1
+                state = next_state
             index_counter += 1
         if state != 'E':
             transition_matrix[state]['E'] += 1
             transition_matrix[state]['Total'] += 1
-        print(state,"E")
     for head1 in header_column_labels:
         for head2 in header_column_labels:
             if transition_matrix[head1]['Total'] != 0:
                 transition_matrix[head1][head2] = transition_matrix[head1][head2] / transition_matrix[head1]['Total']
-
-    return transition_matrix, header_column_labels
+    for head1 in header_column_labels:
+        for head2 in alphabet:
+            if emission_matrix[head1]['Total'] != 0:
+                emission_matrix[head1][head2] = emission_matrix[head1][head2] / emission_matrix[head1]['Total']
+    return transition_matrix, header_column_labels, emission_matrix, alphabet
     
     
 
 #print(outfile_contents)
 i = 0
 for f in file_contents:
-    ans, headers = calculate_hidden_path(file_contents[f])
+    transition, headers, emission, alphabet = calculate_hidden_path(file_contents[f])
     headers.pop()
-    header = "\t" + "\t".join(headers)
-    print(header)
-    for from_state in headers:
-        row = [from_state]
-        for to_state in headers:
-            val = ans.get(from_state, {}).get(to_state,0)
-            if isinstance(val,float) and val == 0.0:
-                formatted_val = "0"
-            elif isinstance(val,float):
-                formatted_val = str(round(val,4))
-            else:
-                formatted_val = str(val)
-            row.append(formatted_val)
-        print("\t".join(row))
-    print('--------')
+    output_file = "pass_off.txt"
+
+    with open(output_file,"w",encoding="utf-8") as file_out:
+        header = "\t" + "\t".join(headers)
+        file_out.write(header + "\n")
+        for from_state in headers:
+            row = [from_state]
+            for to_state in headers:
+                val = transition.get(from_state, {}).get(to_state,0)
+                if isinstance(val,float) and val == 0.0:
+                    formatted_val = "0"
+                elif isinstance(val,float):
+                    formatted_val = str(round(val,4))
+                else:
+                    formatted_val = str(val)
+                row.append(formatted_val)
+            file_out.write("\t".join(row)+"\n")
+        file_out.write('--------'+"\n")
+        alphabet.pop()
+        alph = "\t" + "\t".join(alphabet)
+        file_out.write(alph+"\n")
+        for from_state in headers:
+                row = [from_state]
+                for to_state in alphabet:
+                    val = emission.get(from_state, {}).get(to_state,0)
+                    if isinstance(val,float) and val == 0.0:
+                        formatted_val = "0"
+                    elif isinstance(val,float):
+                        formatted_val = str(round(val,4))
+                    else:
+                        formatted_val = str(val)
+                    row.append(formatted_val)
+                file_out.write("\t".join(row)+"\n")
